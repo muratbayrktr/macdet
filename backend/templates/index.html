@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to MACDET</h1>
+        <p>Select a testbed and run inference using the Longformer model.</p>
+
+        <form id="inference-form">
+            <!-- Testbed Selection -->
+            <label for="testbed">Choose a Testbed:</label>
+            <select id="testbed" name="testbed" onchange="populateTestbedOptions()">
+                <option value="" disabled selected>Select a testbed</option>
+                {% for category, category_testbeds in testbeds.items() %}
+                    <optgroup label="{{ category }}">
+                        {% for testbed in category_testbeds %}
+                            <option value="{{ testbed.testbed_name }}">{{ testbed.testbed_name }}</option>
+                        {% endfor %}
+                    </optgroup>
+                {% endfor %}
+            </select>
+
+            <!-- Testbed Type Selection -->
+            <label for="testbed-type">Choose a Testbed Type:</label>
+            <select id="testbed-type" name="testbed-type" onchange="populateSampledDataOptions()">
+                <!-- This will be dynamically populated based on the testbed -->
+            </select>
+
+            <!-- Model Selection -->
+            <label for="model">Choose a Model:</label>
+            <select id="model" name="model">
+                <option value="longformer">longformer</option>
+            </select>
+
+            <button type="button" onclick="runInferenceWithProgressBar()">Run Inference</button>
+
+            <button type="button" class="blue-button" onclick="populateSampledDataOptions()">Resample</button>
+        </form>
+        <div id="progress-container" style="display: none; margin-top: 20px;">
+            <div style="width: 100%; background-color: #f3f3f3; border-radius: 6px; overflow: hidden;">
+                <div id="progress-bar" style="width: 0%; height: 20px; background-color: #4CAF50; text-align: center; color: white; line-height: 20px; font-size: 14px;">
+                    0%
+                </div>
+            </div>
+        </div>
+
+        <!-- Inference Result -->
+        <div class="output-section">
+            <p>Inference Result:</p>
+            <input type="text" id="confidence" name="confidence" readonly>
+            <input type="text" id="prediction" name="prediction" readonly>
+        </div>
+
+        <div class="output-section">
+            <!-- Ground-truth -->
+            <p>Ground-truth:</p>
+            <input type="text" id="correct-label" name="correct-label" readonly>
+            <!-- File Path -->
+            <p>File Path:</p>
+            <input type="text" id="file-path" name="file-path" readonly>
+            <!-- Sampled Text -->
+            <p>Sampled Text:</p>
+            <textarea id="sampled-text" name="sampled-text" readonly rows="4" style="resize: none;"></textarea>
+        </div>
+        
+
+    </div>
+
+    <script>
+        // Testbed data from the backend
+        const testbeds = {{ testbeds | tojson }};
+        
+        function populateTestbedOptions() {
+            const testbedDropdown = document.getElementById('testbed');
+            const selectedTestbed = testbedDropdown.value;
+
+            const testbedDetails = Object.values(testbeds).flat().find(t => t.testbed_name === selectedTestbed);
+
+            if (testbedDetails && testbedDetails.subtypes) {
+                const testbedTypeDropdown = document.getElementById('testbed-type');
+                testbedTypeDropdown.innerHTML = '';
+
+                // Populate options for testbed types
+                testbedDetails.subtypes.forEach(subtype => {
+                    const option = document.createElement('option');
+                    option.value = subtype.subtype;
+                    option.text = subtype.subtype;
+                    testbedTypeDropdown.appendChild(option);
+                });
+
+                // Trigger data sampling automatically if there's only one subtype
+                if (testbedDetails.subtypes.length === 1) {
+                    testbedTypeDropdown.value = testbedDetails.subtypes[0].subtype;
+                    populateSampledDataOptions(); // Trigger data sampling
+                }
+            }
+        }
+
+        async function populateSampledDataOptions() {
+            const testbed = document.getElementById('testbed').value;
+            const testbedType = document.getElementById('testbed-type').value;
+
+            
+            if (!testbed || !testbedType) {
+                alert('Please select a testbed and testbed type.');
+            }
+            const testbedDetails = Object.values(testbeds).flat().find(t => t.testbed_name === testbed);
+            const subtypeDetails = testbedDetails.subtypes.find(s => s.subtype === testbedType);
+            document.getElementById('file-path').value = subtypeDetails.file_path;    
+        
+            // url compatible file path
+            const filePath = encodeURIComponent(subtypeDetails.file_path);
+            // endpoint is backend/data/mage/sample
+            const response = await fetch(`/data/mage/sample?file_path=${filePath}`);
+            const data = await response.json();
+            document.getElementById('sampled-text').value = data.sampled_data.text;
+            resizeTextarea(document.getElementById('sampled-text')); // enlarge to show the full text
+            document.getElementById('correct-label').value = data.sampled_data.decision;
+
+        }
+
+        function resizeTextarea(textarea) {
+            // Reset the height to auto to calculate the scrollHeight properly
+            textarea.style.height = "auto";
+            // Set the height to the scrollHeight to fit the content
+            textarea.style.height = textarea.scrollHeight + "px";
+        }
+
+        async function runInference() {
+            const testbed = document.getElementById('testbed').value;
+            const testbedType = document.getElementById('testbed-type').value;
+            const model = document.getElementById('model').value;
+
+            if (!testbed || !testbedType || !model) {
+                try {
+                    // populate
+
+                } catch (error) {
+                    alert(error);
+                    return;
+                }
+            }
+
+            // endpoint is backend/infer
+            const response = await fetch('/infer', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    text: document.getElementById('sampled-text').value,
+                    model: model
+                })
+            });
+
+            const data = await response.json();
+
+            document.getElementById('prediction').value = data.label;
+            document.getElementById('confidence').value = data.confidence;
+        }
+
+
+
+
+        function showProgressBar() {
+        const progressContainer = document.getElementById("progress-container");
+        const progressBar = document.getElementById("progress-bar");
+        progressContainer.style.display = "block";
+        progressBar.style.width = "0%";
+        progressBar.textContent = "0%";
+    }
+
+    function updateProgressBar(progress) {
+        const progressBar = document.getElementById("progress-bar");
+        progressBar.style.width = progress + "%";
+        progressBar.textContent = progress + "%";
+    }
+
+    function hideProgressBar() {
+        const progressContainer = document.getElementById("progress-container");
+        progressContainer.style.display = "none";
+    }
+
+    async function runInferenceWithProgressBar() {
+    showProgressBar();
+    // set the prediction and confidence to empty
+    document.getElementById('prediction').value = '';
+    document.getElementById('confidence').value = '';
+
+    // Start inference
+    const inferencePromise = runInference(); // Simulate or call your inference function
+    const progressBar = document.getElementById("progress-bar");
+
+    // Progress logic
+    let progress = 0;
+    const minDuration = 3000; // Minimum duration for the progress bar
+    const startTime = Date.now();
+
+    // Create a loop for updating the progress bar
+    while (progress < 100) {
+        const elapsedTime = Date.now() - startTime;
+
+        // Simulate progress (progress will go up until 100 or task completes)
+        progress = Math.min((elapsedTime / minDuration) * 100, 100);
+        progressBar.style.width = progress + "%";
+        progressBar.textContent = Math.round(progress) + "%";
+
+        // Check if inferencePromise is resolved
+        if (await Promise.race([inferencePromise, new Promise((resolve) => setTimeout(resolve, 100))]) === true) {
+            updateProgressBar(100);
+            break;
+        }
+        
+        // Wait a bit before the next update
+        await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    // Instantly set progress to 100 and break the loop
+    progressBar.style.transition = "none"; // Disable animation for width change
+    // Instantly hide the progress bar
+    hideProgressBar();
+    progressBar.style.transition = ""; // Re-enable animation
+    
+}
+    </script>
+</body>
+</html>
