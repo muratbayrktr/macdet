@@ -1,4 +1,4 @@
-from backend.longformer.mage import preprocess, detect
+from backend.longformer.utils import preprocess, detect
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import os
 from backend.longformer.models import DetectionRequest, DetectionResponse, Error
@@ -28,4 +28,3 @@ class InferenceEngine:
             label=outputs["label"],
             confidence=outputs["confidence"],
         )
-        return inputs
