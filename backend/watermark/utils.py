@@ -72,3 +72,4 @@ def watermarkedtext(input_text, tokenizer, model, device="cpu"):
 
     output_text = tokenizer.batch_decode(output_tokens, skip_special_tokens=True)[0]
     print(f"watermarked:{output_text}")
+    return output_text
