@@ -6,29 +6,45 @@
 </head>
 <body>
     <div class="container">
-        <h1>Welcome to MACDET</h1>
-        <p>Select a testbed and run inference using the Longformer model.</p>
+        <h1>MACDET</h1>
+        <p>Select a testbed and run inference using one of our models.</p>
 
         <form id="inference-form">
-            <!-- Testbed Selection -->
-            <label for="testbed">Choose a Testbed:</label>
-            <select id="testbed" name="testbed" onchange="populateTestbedOptions()">
-                <option value="" disabled selected>Select a testbed</option>
-                {% for category, category_testbeds in testbeds.items() %}
-                    <optgroup label="{{ category }}">
-                        {% for testbed in category_testbeds %}
-                            <option value="{{ testbed.testbed_name }}">{{ testbed.testbed_name }}</option>
-                        {% endfor %}
-                    </optgroup>
-                {% endfor %}
+            <!-- Input Mode Selection -->
+            <label for="input-mode">Choose Input Mode:</label>
+            <select id="input-mode" name="input-mode" onchange="toggleInputMode()">
+                <option value="sample" selected>Sample from Dataset</option>
+                <option value="manual">Enter Manually</option>
             </select>
-
-            <!-- Testbed Type Selection -->
-            <label for="testbed-type">Choose a Testbed Type:</label>
-            <select id="testbed-type" name="testbed-type" onchange="populateSampledDataOptions()">
-                <!-- This will be dynamically populated based on the testbed -->
-            </select>
-
+        
+            <!-- Sampling Options -->
+            <div id="sampling-options">
+                <label for="testbed">Choose a Testbed:</label>
+                <select id="testbed" name="testbed" onchange="populateTestbedOptions()">
+                    <option value="" disabled selected>Select a testbed</option>
+                    {% for category, category_testbeds in testbeds.items() %}
+                        <optgroup label="{{ category }}">
+                            {% for testbed in category_testbeds %}
+                                <option value="{{ testbed.testbed_name }}">{{ testbed.testbed_name }}</option>
+                            {% endfor %}
+                        </optgroup>
+                    {% endfor %}
+                </select>
+        
+                <label for="testbed-type">Choose a Testbed Type:</label>
+                <select id="testbed-type" name="testbed-type" onchange="populateSampledDataOptions()">
+                    <!-- Dynamically populated based on the testbed -->
+                </select>
+        
+                <button type="button" class="blue-button" onclick="populateSampledDataOptions()">Resample</button>
+            </div>
+        
+            <!-- Manual Input Option -->
+            <div id="manual-input" style="display: none;">
+                <label for="manual-text">Enter Text:</label>
+                <textarea id="manual-text" name="manual-text" rows="4" style="resize: none;"></textarea>
+            </div>
+        
             <!-- Model Selection -->
             <label for="model">Choose a Model:</label>
             <select id="model" name="model">
@@ -36,11 +52,10 @@
                 <option value="finetuned">bert</option>
                 <option value="watermark">watermark</option>
             </select>
-
+        
             <button type="button" onclick="runInferenceWithProgressBar()">Run Inference</button>
-
-            <button type="button" class="blue-button" onclick="populateSampledDataOptions()">Resample</button>
         </form>
+        
         <div id="progress-container" style="display: none; margin-top: 20px;">
             <div style="width: 100%; background-color: #f3f3f3; border-radius: 6px; overflow: hidden;">
                 <div id="progress-bar" style="width: 0%; height: 20px; background-color: #4CAF50; text-align: center; color: white; line-height: 20px; font-size: 14px;">
@@ -74,7 +89,20 @@
     <script>
         // Testbed data from the backend
         const testbeds = {{ testbeds | tojson }};
-        
+        function toggleInputMode() {
+            const inputMode = document.getElementById("input-mode").value;
+            const samplingOptions = document.getElementById("sampling-options");
+            const manualInput = document.getElementById("manual-input");
+
+            if (inputMode === "manual") {
+                samplingOptions.style.display = "none";
+                manualInput.style.display = "block";
+            } else {
+                samplingOptions.style.display = "block";
+                manualInput.style.display = "none";
+            }
+        }
+
         function populateTestbedOptions() {
             const testbedDropdown = document.getElementById('testbed');
             const selectedTestbed = testbedDropdown.value;
@@ -132,34 +160,35 @@
         }
 
         async function runInference() {
-            const testbed = document.getElementById('testbed').value;
-            const testbedType = document.getElementById('testbed-type').value;
-            const model = document.getElementById('model').value;
+            const inputMode = document.getElementById("input-mode").value;
+            let text;
 
-            if (!testbed || !testbedType || !model) {
-                try {
-                    // populate
-
-                } catch (error) {
-                    alert(error);
+            if (inputMode === "manual") {
+                text = document.getElementById("manual-text").value;
+                if (!text) {
+                    alert("Please enter text.");
+                    return;
+                }
+            } else {
+                text = document.getElementById("sampled-text").value;
+                if (!text) {
+                    alert("Please select a testbed and testbed type to sample text.");
                     return;
                 }
             }
 
-            // endpoint is backend/infer
+            const model = document.getElementById("model").value;
+
+            // Call the inference endpoint
             const response = await fetch('/infer', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    text: document.getElementById('sampled-text').value,
-                    model: model
-                })
+                body: JSON.stringify({ text, model })
             });
 
             const data = await response.json();
-
             document.getElementById('prediction').value = data.label;
             document.getElementById('confidence').value = data.confidence;
         }
