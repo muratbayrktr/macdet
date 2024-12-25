@@ -1,0 +1,137 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    padding: 20px;
+    background-color: #f4f4f9;
+}
+
+.container {
+    max-width: 700px;
+    margin: auto;
+    background: white;
+    padding: 20px 30px;
+    border-radius: 10px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+p {
+    text-align: center;
+    color: #555;
+}
+
+label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #444;
+}
+
+select, input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 20px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 16px;
+    background: #f9f9f9;
+}
+
+input[readonly] {
+    background: #eef2f7;
+    color: #555;
+    cursor: not-allowed;
+}
+
+button {
+    width: 100%;
+    padding: 14px;
+    margin: 10px;
+    background: #28a745;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+button:hover {
+    background: #218838;
+}
+
+.blue-button {
+    background-color: #007BFF; /* Bootstrap's primary blue */
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    padding: 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    margin: 10px;
+    transition: background-color 0.3s ease;
+}
+
+.blue-button:hover {
+    background-color: #0056b3; /* Darker blue for hover effect */
+}
+
+.output-section {
+    margin-top: 30px;
+    padding: 20px;
+    border-radius: 8px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+}
+
+.output-section p {
+    margin: 0 0 8px 0;
+    font-weight: bold;
+    color: #333;
+}
+
+.output-section input {
+    font-size: 16px;
+    padding: 10px;
+    height: auto;
+}
+
+textarea {
+    width: 100%; /* Matches the full width of the container */
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 16px;
+    background: #f8f8f8;
+    color: #555;
+    line-height: 1.5; /* Improves readability */
+    overflow-y: auto; /* Adds a scrollbar if the text overflows */
+
+}
+textarea[readonly] {
+    background: #eef2f7; /* Subtle background for readonly fields */
+    cursor: not-allowed;
+}
+
+#progress-container {
+    display: none;
+    width: 100%;
+}
+
+#progress-bar {
+    width: 0%;
+    height: 20px;
+    background-color: #4CAF50;
+    text-align: center;
+    color: white;
+    line-height: 20px;
+    font-size: 14px;
+    border-radius: 6px;
+}
