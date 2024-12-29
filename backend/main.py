@@ -8,6 +8,7 @@ from fastapi.requests import Request
 from backend.data.view import router as data_router
 from backend.longformer.view import router as longformer_router
 from backend.finetuned.view import router as finetuned_router
+from backend.watermark.view import router as watermark_router
 from backend.data.view import get_available_testbeds
 from backend.longformer.models import DetectionRequest, DetectionResponse
 import os
@@ -20,6 +21,8 @@ app = FastAPI(
         *longformer_router.routes,
         *data_router.routes,
         *finetuned_router.routes,
+        *watermark_router.routes,
+        
     ],
     dependencies=[],
 )
