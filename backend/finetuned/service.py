@@ -2,7 +2,8 @@ from backend.finetuned.utils import preprocess, detect
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 from backend.finetuned.models import DetectionRequest, DetectionResponse, Error
 from langdetect import detect as lang_detect, DetectorFactory, LangDetectException
-
+from logging import getLogger
+import json
 # Conditionally import torch if available in the environment
 try:
     import torch
@@ -10,6 +11,7 @@ try:
 except ImportError:
     torch_available = False
 
+logger = getLogger(__name__)
 
 class InferenceEngine:
     def __init__(self):
@@ -17,15 +19,16 @@ class InferenceEngine:
         Initialize the inference engine with models for different languages.
         """
         self.device = "cuda" if torch_available and torch.cuda.is_available() else "cpu"
-        
         # Define model paths for each language
         self.model_dirs = {
-            "en": "bert-base-multilingual-cased-finetuned-en-text-davinci-003",
-            "es": "bert-base-multilingual-cased-finetuned-es-text-davinci-003",
+            "en": "models/bert-base-multilingual-cased-finetuned-en-text-davinci-003",
+            "es": "models/bert-base-multilingual-cased-finetuned-es-text-davinci-003",
+            "all": "models/roberta-large-openai-detector-finetuned-all-all"
             # Add paths for more languages as needed
         }
 
         # Load models and tokenizers for each language
+        logger.info(f"Loading {json.dumps(self.model_dirs)}")
         self.models = {
             lang: AutoModelForSequenceClassification.from_pretrained(model_dir).to(self.device)
             for lang, model_dir in self.model_dirs.items()
@@ -35,8 +38,8 @@ class InferenceEngine:
             for lang, model_dir in self.model_dirs.items()
         }
 
-        # Set the fallback language (English)
-        self.default_lang = "en"
+        # Set the fallback language (all)
+        self.default_lang = "all"
 
     def predict(self, detection_request: DetectionRequest) -> DetectionResponse:
         """

@@ -2,259 +2,236 @@
 <html>
 <head>
     <title>{{ title }}</title>
-    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/styles.css?v=2.0">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        p {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #555;
+        }
+
+        .main-container {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+        }
+
+        .input-section, .output-section {
+            flex: 1;
+            min-width: 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #ffffff;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .input-section h2, .output-section h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        .output-model {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: left; /* Left justify content */
+            
+        }
+        
+        .output-model h3 {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .output-model p {
+            text-align: left; /* Left justify content */
+            margin: 5px 10px;
+            width: 90%;
+        }
+
+        .output-model textarea, .output-section textarea, .output-model input, .output-section input {
+            width: 90%;
+            max-height: 150px; /* Prevents text from overflowing */
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 16px;
+            background: #f8f8f8;
+            color: #555;
+            line-height: 1.5;
+            overflow-y: auto; /* Scroll for overflowing content */
+            overflow-x: hidden;
+            resize: none; /* Prevent resizing */
+        }
+
+        textarea {
+            width: 100%;
+            padding: 10px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            background-color: #f9f9f9;
+            resize: none;
+        }
+
+        button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:active {
+            background-color: #0041a3;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        input[readonly] {
+            background: #eef2f7;
+            color: #555;
+            cursor: not-allowed;
+        }
+
+        span {
+            color:darkgreen;
+        }
+
+    </style>
 </head>
 <body>
     <div class="container">
         <h1>MACDET</h1>
-        <p>Select a testbed and run inference using one of our models.</p>
+        <p>Select data input and compare results from all models.</p>
+        <div class="main-container">
+            <!-- Input Section -->
+            <div class="input-section">
+                <h2>Input Data</h2>
+                <form id="inference-form">
+                    <label for="input-mode">Choose Input Mode:</label>
+                    <select id="input-mode" name="input-mode" onchange="toggleInputMode()">
+                        <option value="sample" selected>Sample from Dataset</option>
+                        <option value="manual">Enter Manually</option>
+                    </select>
 
-        <form id="inference-form">
-            <!-- Input Mode Selection -->
-            <label for="input-mode">Choose Input Mode:</label>
-            <select id="input-mode" name="input-mode" onchange="toggleInputMode()">
-                <option value="sample" selected>Sample from Dataset</option>
-                <option value="manual">Enter Manually</option>
-            </select>
-        
-            <!-- Sampling Options -->
-            <div id="sampling-options">
-                <label for="testbed">Choose a Testbed:</label>
-                <select id="testbed" name="testbed" onchange="populateTestbedOptions()">
-                    <option value="" disabled selected>Select a testbed</option>
-                    {% for category, category_testbeds in testbeds.items() %}
-                        <optgroup label="{{ category }}">
-                            {% for testbed in category_testbeds %}
-                                <option value="{{ testbed.testbed_name }}">{{ testbed.testbed_name }}</option>
+                    <div id="sampling-options">
+                        <label for="testbed">Choose a Testbed:</label>
+                        <select id="testbed" name="testbed" onchange="populateTestbedOptions()">
+                            <option value="" disabled selected>Select a testbed</option>
+                            {% for category, category_testbeds in testbeds.items() %}
+                                <optgroup label="{{ category }}">
+                                    {% for testbed in category_testbeds %}
+                                        <option value="{{ testbed.testbed_name }}">{{ testbed.testbed_name }}</option>
+                                    {% endfor %}
+                                </optgroup>
                             {% endfor %}
-                        </optgroup>
-                    {% endfor %}
-                </select>
-        
-                <label for="testbed-type">Choose a Testbed Type:</label>
-                <select id="testbed-type" name="testbed-type" onchange="populateSampledDataOptions()">
-                    <!-- Dynamically populated based on the testbed -->
-                </select>
-        
-                <button type="button" class="blue-button" onclick="populateSampledDataOptions()">Resample</button>
+                        </select>
+
+                        <label for="testbed-type">Choose a Testbed Type:</label>
+                        <select id="testbed-type" name="testbed-type" onchange="populateSampledDataOptions()"></select>
+
+                        <button type="button" onclick="populateSampledDataOptions()">Resample</button>
+                    </div>
+
+                    <div id="manual-input" style="display: none;">
+                        <label for="manual-text">Enter Text:</label>
+                        <textarea id="manual-text" name="manual-text" rows="4"></textarea>
+                    </div>
+
+                    
+                </form>
+                <div id="sampled-data-output" class="output-model">
+                    <p><strong>Ground-truth:</strong></p>
+                    <input type="text" id="correct-label" name="correct-label" readonly>
+                    <p><strong>File Path:</strong></p>
+                    <input type="text" id="file-path" name="file-path" readonly>
+                    <p><strong>Sampled Text:</strong></p>
+                    <textarea id="sampled-text" name="sampled-text" readonly rows="4"></textarea>
+                </div>
             </div>
-        
-            <!-- Manual Input Option -->
-            <div id="manual-input" style="display: none;">
-                <label for="manual-text">Enter Text:</label>
-                <textarea id="manual-text" name="manual-text" rows="4" style="resize: none;"></textarea>
-            </div>
-        
-            <!-- Model Selection -->
-            <label for="model">Choose a Model:</label>
-            <select id="model" name="model">
-                <option value="longformer">longformer</option>
-                <option value="finetuned">bert</option>
-                <option value="watermark">watermark</option>
-            </select>
-        
-            <button type="button" onclick="runInferenceWithProgressBar()">Run Inference</button>
-        </form>
-        
-        <div id="progress-container" style="display: none; margin-top: 20px;">
-            <div style="width: 100%; background-color: #f3f3f3; border-radius: 6px; overflow: hidden;">
-                <div id="progress-bar" style="width: 0%; height: 20px; background-color: #4CAF50; text-align: center; color: white; line-height: 20px; font-size: 14px;">
-                    0%
+
+            <!-- Output Section -->
+            <div class="output-section">
+                <h2>Model Outputs</h2>
+                <button type="button" onclick="runInference()">Run Inference</button>
+                <div id="macdet-output" class="output-model">
+                    <h3>MACDET</h3>
+                    <p>Prediction: <span id="macdet-prediction"></span></p>
+                    <p>Confidence: <span id="macdet-confidence"></span></p>
+                </div>
+                
+                <div id="longformer-output" class="output-model">
+                    <h3>Longformer</h3>
+                    <p>Prediction: <span id="longformer-prediction"></span></p>
+                    <p>Confidence: <span id="longformer-confidence"></span></p>
+                </div>
+
+                <div id="bert-output" class="output-model">
+                    <h3>BERT (Finetuned)</h3>
+                    <p>Prediction: <span id="bert-prediction"></span></p>
+                    <p>Confidence: <span id="bert-confidence"></span></p>
+                </div>
+
+                <div id="watermark-output" class="output-model">
+                    <h3>Watermark</h3>
+                    <p><strong>Prediction:</strong> <span id="watermark-prediction"></span></p>
+                    <p><strong>Confidence:</strong> <span id="watermark-confidence"></span></p>
+                    <p><strong>Number of Tokens Scored:</strong> <span id="num-tokens-scored"></span></p>
+                    <p><strong>Number of Green Tokens:</strong> <span id="num-green-tokens"></span></p>
+                    <p><strong>Green Fraction:</strong> <span id="green-fraction"></span></p>
+                    <p><strong>Z-Score:</strong> <span id="z-score"></span></p>
+                    <p><strong>P-Value:</strong> <span id="p-value"></span></p>
+                    <p><strong>Detection Threshold:</strong> <span id="detection-threshold"></span></p>
+                    <p><strong>Watermarked Text:</strong></p>
+                    <textarea id="watermarked-text" readonly rows="4"></textarea>
                 </div>
             </div>
         </div>
-
-        <!-- Inference Result -->
-        <div class="output-section">
-            <p>Inference Result:</p>
-            <input type="text" id="confidence" name="confidence" readonly>
-            <input type="text" id="prediction" name="prediction" readonly>
-        </div>
-
-        <div class="output-section">
-            <!-- Ground-truth -->
-            <p>Ground-truth:</p>
-            <input type="text" id="correct-label" name="correct-label" readonly>
-            <!-- File Path -->
-            <p>File Path:</p>
-            <input type="text" id="file-path" name="file-path" readonly>
-            <!-- Sampled Text -->
-            <p>Sampled Text:</p>
-            <textarea id="sampled-text" name="sampled-text" readonly rows="4" style="resize: none;"></textarea>
-        </div>
-        
-
     </div>
-
     <script>
-        // Testbed data from the backend
         const testbeds = {{ testbeds | tojson }};
-        function toggleInputMode() {
-            const inputMode = document.getElementById("input-mode").value;
-            const samplingOptions = document.getElementById("sampling-options");
-            const manualInput = document.getElementById("manual-input");
-
-            if (inputMode === "manual") {
-                samplingOptions.style.display = "none";
-                manualInput.style.display = "block";
-            } else {
-                samplingOptions.style.display = "block";
-                manualInput.style.display = "none";
-            }
-        }
-
-        function populateTestbedOptions() {
-            const testbedDropdown = document.getElementById('testbed');
-            const selectedTestbed = testbedDropdown.value;
-
-            const testbedDetails = Object.values(testbeds).flat().find(t => t.testbed_name === selectedTestbed);
-
-            if (testbedDetails && testbedDetails.subtypes) {
-                const testbedTypeDropdown = document.getElementById('testbed-type');
-                testbedTypeDropdown.innerHTML = '';
-
-                // Populate options for testbed types
-                testbedDetails.subtypes.forEach(subtype => {
-                    const option = document.createElement('option');
-                    option.value = subtype.subtype;
-                    option.text = subtype.subtype;
-                    testbedTypeDropdown.appendChild(option);
-                });
-
-                // Trigger data sampling automatically if there's only one subtype
-                if (testbedDetails.subtypes.length === 1) {
-                    testbedTypeDropdown.value = testbedDetails.subtypes[0].subtype;
-                    populateSampledDataOptions(); // Trigger data sampling
-                }
-            }
-        }
-
-        async function populateSampledDataOptions() {
-            const testbed = document.getElementById('testbed').value;
-            const testbedType = document.getElementById('testbed-type').value;
-
-            
-            if (!testbed || !testbedType) {
-                alert('Please select a testbed and testbed type.');
-            }
-            const testbedDetails = Object.values(testbeds).flat().find(t => t.testbed_name === testbed);
-            const subtypeDetails = testbedDetails.subtypes.find(s => s.subtype === testbedType);
-            document.getElementById('file-path').value = subtypeDetails.file_path;    
-        
-            // url compatible file path
-            const filePath = encodeURIComponent(subtypeDetails.file_path);
-            // endpoint is backend/data/mage/sample
-            const response = await fetch(`/data/mage/sample?file_path=${filePath}`);
-            const data = await response.json();
-            document.getElementById('sampled-text').value = data.sampled_data.text;
-            resizeTextarea(document.getElementById('sampled-text')); // enlarge to show the full text
-            document.getElementById('correct-label').value = data.sampled_data.decision;
-
-        }
-
-        function resizeTextarea(textarea) {
-            // Reset the height to auto to calculate the scrollHeight properly
-            textarea.style.height = "auto";
-            // Set the height to the scrollHeight to fit the content
-            textarea.style.height = textarea.scrollHeight + "px";
-        }
-
-        async function runInference() {
-            const inputMode = document.getElementById("input-mode").value;
-            let text;
-
-            if (inputMode === "manual") {
-                text = document.getElementById("manual-text").value;
-                if (!text) {
-                    alert("Please enter text.");
-                    return;
-                }
-            } else {
-                text = document.getElementById("sampled-text").value;
-                if (!text) {
-                    alert("Please select a testbed and testbed type to sample text.");
-                    return;
-                }
-            }
-
-            const model = document.getElementById("model").value;
-
-            // Call the inference endpoint
-            const response = await fetch('/infer', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ text, model })
-            });
-
-            const data = await response.json();
-            document.getElementById('prediction').value = data.label;
-            document.getElementById('confidence').value = data.confidence;
-        }
-
-
-
-
-        function showProgressBar() {
-        const progressContainer = document.getElementById("progress-container");
-        const progressBar = document.getElementById("progress-bar");
-        progressContainer.style.display = "block";
-        progressBar.style.width = "0%";
-        progressBar.textContent = "0%";
-    }
-
-    function updateProgressBar(progress) {
-        const progressBar = document.getElementById("progress-bar");
-        progressBar.style.width = progress + "%";
-        progressBar.textContent = progress + "%";
-    }
-
-    function hideProgressBar() {
-        const progressContainer = document.getElementById("progress-container");
-        progressContainer.style.display = "none";
-    }
-
-    async function runInferenceWithProgressBar() {
-    showProgressBar();
-    // set the prediction and confidence to empty
-    document.getElementById('prediction').value = '';
-    document.getElementById('confidence').value = '';
-
-    // Start inference
-    const inferencePromise = runInference(); // Simulate or call your inference function
-    const progressBar = document.getElementById("progress-bar");
-
-    // Progress logic
-    let progress = 0;
-    const minDuration = 3000; // Minimum duration for the progress bar
-    const startTime = Date.now();
-
-    // Create a loop for updating the progress bar
-    while (progress < 100) {
-        const elapsedTime = Date.now() - startTime;
-
-        // Simulate progress (progress will go up until 100 or task completes)
-        progress = Math.min((elapsedTime / minDuration) * 100, 100);
-        progressBar.style.width = progress + "%";
-        progressBar.textContent = Math.round(progress) + "%";
-
-        // Check if inferencePromise is resolved
-        if (await Promise.race([inferencePromise, new Promise((resolve) => setTimeout(resolve, 100))]) === true) {
-            updateProgressBar(100);
-            break;
-        }
-        
-        // Wait a bit before the next update
-        await new Promise((resolve) => setTimeout(resolve, 50));
-    }
-    // Instantly set progress to 100 and break the loop
-    progressBar.style.transition = "none"; // Disable animation for width change
-    // Instantly hide the progress bar
-    hideProgressBar();
-    progressBar.style.transition = ""; // Re-enable animation
-    
-}
+        console.log("Testbeds:", testbeds);
     </script>
+    <script src="/static/scripts.js"></script>
 </body>
 </html>
