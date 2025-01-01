@@ -27,7 +27,7 @@ def preprocess(text):
     )
     return text
 
-def detect(input_text, tokenizer, model, device="cpu"):
+def detect(input_text, tokenizer, model, device="cpu", th=-3.08583984375):
     """
     Perform inference using the provided model and tokenizer.
     """
@@ -45,7 +45,7 @@ def detect(input_text, tokenizer, model, device="cpu"):
         confidence = probabilities[predicted_class].item()
 
         # Map the predicted class to the label
-        label_map = {0: "machine-generated", 1: "human-written"}
+        label_map = {1: "machine-generated", 0: "human-written"}
         label = label_map.get(predicted_class, "unknown")
 
         return {"label": label, "confidence": confidence}
