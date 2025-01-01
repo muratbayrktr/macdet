@@ -23,7 +23,8 @@ class InferenceEngine:
         self.model_dirs = {
             "en": "models/bert-base-multilingual-cased-finetuned-en-text-davinci-003",
             "es": "models/bert-base-multilingual-cased-finetuned-es-text-davinci-003",
-            "all": "models/roberta-large-openai-detector-finetuned-all-all"
+            "all": "models/bert-base-multilingual-cased-finetuned-en-text-davinci-003"
+            # "all": "models/roberta-large-openai-detector-finetuned-all-all"
             # Add paths for more languages as needed
         }
 
