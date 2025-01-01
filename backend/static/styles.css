@@ -6,12 +6,15 @@ body {
 }
 
 .container {
-    max-width: 700px;
+    max-width: 1200px; /* Increased max-width for better layout */
     margin: auto;
     background: white;
     padding: 20px 30px;
     border-radius: 10px;
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
 
 h1 {
@@ -51,7 +54,8 @@ input[readonly] {
 button {
     width: 100%;
     padding: 14px;
-    margin: 10px;
+    margin-top: 10px;
+    margin-bottom: 10px;
     background: #28a745;
     color: white;
     font-size: 18px;
@@ -75,7 +79,7 @@ button:hover {
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    margin: 10px;
+    margin: 10px 0;
     transition: background-color 0.3s ease;
 }
 
@@ -83,28 +87,47 @@ button:hover {
     background-color: #0056b3; /* Darker blue for hover effect */
 }
 
-.output-section {
-    margin-top: 30px;
+.main-container {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+}
+
+.input-section, .output-section {
+    flex: 1; /* Ensures equal column widths */
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background: #ffffff;
     padding: 20px;
-    border-radius: 8px;
-    background: #f8f9fa;
-    border: 1px solid #dee2e6;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden; /* Prevents content from overflowing */
+}
+
+.output-section {
+    background: #f8f9fa; /* Light background for contrast */
 }
 
 .output-section p {
-    margin: 0 0 8px 0;
+    margin: 10px;
     font-weight: bold;
     color: #333;
+
 }
 
-.output-section input {
+.output-section input,
+.output-section textarea {
     font-size: 16px;
     padding: 10px;
+    margin: 10px;
+    border: 1px solid #ccc;
     height: auto;
+    overflow-wrap: break-word; /* Prevents long text from overflowing */
+    word-wrap: break-word; /* Ensures wrapping for older browsers */
 }
 
 textarea {
     width: 100%; /* Matches the full width of the container */
+    height: 100px; /* Fixed height for better control */
     padding: 12px;
     border: 1px solid #ccc;
     border-radius: 6px;
@@ -112,12 +135,16 @@ textarea {
     background: #f8f8f8;
     color: #555;
     line-height: 1.5; /* Improves readability */
-    overflow-y: auto; /* Adds a scrollbar if the text overflows */
-
+    overflow-y: auto; /* Adds a scrollbar for long text */
+    overflow-x: hidden; /* Prevents horizontal scrolling */
+    resize: none; /* Disables manual resizing */
 }
+
 textarea[readonly] {
     background: #eef2f7; /* Subtle background for readonly fields */
     cursor: not-allowed;
+    overflow-wrap: break-word; /* Ensures text wraps correctly */
+    word-wrap: break-word; /* Backward compatibility for older browsers */
 }
 
 #progress-container {

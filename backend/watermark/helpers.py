@@ -16,7 +16,7 @@ arg_dict = {
      'model_name_or_path': 'facebook/opt-125m', 
     # 'model_name_or_path': 'facebook/opt-1.3b', 
     # 'model_name_or_path': 'facebook/opt-2.7b', 
-    #'model_name_or_path': 'facebook/opt-6.7b',
+    # 'model_name_or_path': 'facebook/opt-6.7b',
     # 'model_name_or_path': 'facebook/opt-13b',
     # 'load_fp16' : True,
     'load_fp16' : False,

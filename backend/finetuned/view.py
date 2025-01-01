@@ -1,8 +1,10 @@
 from backend.finetuned import router
 from backend.finetuned.models import DetectionRequest, DetectionResponse, Error
-from backend.longformer.service import InferenceEngine
+from backend.models import EngineHub
 
 @router.post("/infer")
 async def infer(request: DetectionRequest) -> DetectionResponse | Error:
-    engine = InferenceEngine()
+    engine = EngineHub.get("finetuned", None)
+    if engine is None:
+        return Error(message="Engine not found.")
     return engine.predict(request)

@@ -1,6 +1,7 @@
 # ignore the data
 backend/data/mage/testbeds
 backend/finetuned/finetuned_models
+models/*
 
 .DS_Store
 # Byte-compiled / optimized / DLL files
