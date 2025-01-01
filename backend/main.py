@@ -199,60 +199,63 @@ async def general_infer(request: Request):
         # Detect language of the text
         response["macdet"] = {}
         language = detect(text)
-        if language != "en":
-            response["macdet"] = response["finetuned"]
+
+        # Step 2
+        # Ensemble of longformer and watermark models
+        longformer_response = response["longformer"]
+        watermark_response = response["watermark"]
+        finetuned_response = response["finetuned"]
+        # Extract values from responses
+        longformer_confidence = longformer_response.get("confidence", 0.0)
+        finetuned_confidence = finetuned_response.get("confidence", 0.0)
+        watermark_confidence = watermark_response.get("confidence", 0.0)
+        watermark_p_value = watermark_response.get("p_value", 1.0)
+        watermark_z_score = watermark_response.get("z_score", 0.0)
+
+        # Statistical significance based on multiple factors
+        green_fraction_significance = watermark_response.get("green_fraction", 0) > 1.1 * 0.25  # Adjust based on γ
+        is_watermark_significant = (watermark_p_value < 0.5) or (watermark_z_score > 1.5 and green_fraction_significance)
+
+        # Dynamic weighting
+        longformer_weight = longformer_confidence
+        watermark_weight = (
+            watermark_confidence * 1.5 if is_watermark_significant else watermark_confidence * 0.7
+        )
+        finetuned_weight = finetuned_confidence * 1.5 if language != "en" else finetuned_confidence * 0.4
+
+        # Normalize weights
+        total_weight = longformer_weight + watermark_weight + finetuned_weight
+        if total_weight > 0:
+            longformer_weight /= total_weight
+            watermark_weight /= total_weight
+            finetuned_weight /= total_weight
         else:
-            # Step 2
-            # Ensemble of longformer and watermark models
-            longformer_response = response["longformer"]
-            watermark_response = response["watermark"]
-            # Extract values from responses
-            longformer_confidence = longformer_response.get("confidence", 0.0)
-            watermark_confidence = watermark_response.get("confidence", 0.0)
-            watermark_p_value = watermark_response.get("p_value", 1.0)
-            watermark_z_score = watermark_response.get("z_score", 0.0)
+            longformer_weight = watermark_weight = finetuned_weight = 1.0 / 3.0
 
-            # Statistical significance based on multiple factors
-            green_fraction_significance = watermark_response.get("green_fraction", 0) > 1.1 * 0.25  # Adjust based on γ
-            is_watermark_significant = (watermark_p_value < 0.5) or (watermark_z_score > 1.5 and green_fraction_significance)
+        # Combined confidence
+        combined_confidence = (
+            longformer_weight * longformer_confidence +
+            watermark_weight * watermark_confidence +
+            finetuned_weight * finetuned_confidence
+        )
 
-            # Dynamic weighting
-            longformer_weight = longformer_confidence
-            watermark_weight = (
-                watermark_confidence * 1.5 if is_watermark_significant else watermark_confidence * 0.7
-            )
-
-            # Normalize weights
-            total_weight = longformer_weight + watermark_weight
-            if total_weight > 0:
-                longformer_weight /= total_weight
-                watermark_weight /= total_weight
+        # Decision logic
+        if longformer_confidence > 0.996:
+            final_prediction = longformer_response["label"]
+        elif longformer_response["label"] == "machine-generated" and watermark_response["label"] == "machine-generated":
+            final_prediction = "machine-generated"
+        elif longformer_response["label"] == "machine-generated" or watermark_response["label"] == "machine-generated":
+            if is_watermark_significant:
+                final_prediction = watermark_response["label"]
             else:
-                longformer_weight = watermark_weight = 0.5  # Default equal weight
+                # Default to the model with higher confidence
+                final_prediction = "machine-generated" if longformer_confidence > watermark_confidence else "human-written"
+        else:
+            final_prediction = "human-written"
 
-            # Combined confidence
-            combined_confidence = (
-                longformer_weight * longformer_confidence +
-                watermark_weight * watermark_confidence
-            )
-
-            # Decision logic
-            if longformer_confidence > 0.996:
-                final_prediction = longformer_response["label"]
-            elif longformer_response["label"] == "machine-generated" and watermark_response["label"] == "machine-generated":
-                final_prediction = "machine-generated"
-            elif longformer_response["label"] == "machine-generated" or watermark_response["label"] == "machine-generated":
-                if is_watermark_significant:
-                    final_prediction = watermark_response["label"]
-                else:
-                    # Default to the model with higher confidence
-                    final_prediction = "machine-generated" if longformer_confidence > watermark_confidence else "human-written"
-            else:
-                final_prediction = "human-written"
-
-            # Update response
-            response["macdet"]["label"] = final_prediction
-            response["macdet"]["confidence"] = combined_confidence
+        # Update response
+        response["macdet"]["label"] = final_prediction
+        response["macdet"]["confidence"] = combined_confidence
                 
         print(json.dumps(response, indent=4))
         return response
