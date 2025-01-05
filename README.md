@@ -1,5 +1,26 @@
-# macdet
+# MACDET
 A binary machine generated text detection framework.
+## Results
+We evaluated our models on various testbeds and achieved the following results:
+
+### Model Accuracy by Testbed
+![Model Accuracy by Testbed](figures/model_accuracy_by_testbed.png)
+
+### Additional Results
+![Additional Results](figures/model_accuracy_by_text_lenght.png)
+
+- [MAGE](#mage)
+  - [Testbeds](#testbeds)
+- [Models](#models)
+    - [Finetuned models](#finetuned-models)
+    - [Pretrained models](#pretrained-models)
+
+
+## How to run
+```bash
+poetry install
+poetry run uvicorn backend.main:app
+```
 
 ## MAGE
 ### Testbeds

@@ -18,6 +18,8 @@ from langdetect import detect
 from contextlib import asynccontextmanager
 from backend.models import EngineHub
 from logging import getLogger
+import ranx
+from ranx import Qrels, Run, fuse
 import os
 import json
 import httpx
@@ -91,6 +93,8 @@ async def read_root(request: Request):
                 "request": request,
                 "title": "MACDET Home",
                 "testbeds": structured_testbeds,
+                # favicon
+                "favicon": "/static/favicon.ico",
             },
         )
     except HTTPException as http_exc:
@@ -187,77 +191,74 @@ async def general_infer(request: Request):
         #     }
         # }
         response = {
-            model_name: response.json() if response.status_code == 200 else None
-            for model_name, response in zip(model_names, responses)
+            model_name: r.json() if r.status_code == 200 else None
+            for model_name, r in zip(model_names, responses)
         }
-        ## Ensemble approach 
-        # Step 1: detect language of the text
-        # Step 2: if language is not english, return the response from finetuned model
-        # Step 3: if language is english, return the response from ensemble of longformer and watermark models
+        
+        base_weights = {
+            "longformer": 1.2,
+            "finetuned": 1.0,
+            "watermark": 0.8
+        }
 
-        # Step 1
-        # Detect language of the text
-        response["macdet"] = {}
-        language = detect(text)
+        # Label <-> index mapping for a 2-class problem
+        label_to_index = {"machine-generated": 0, "human-written": 1}
+        index_to_label = {0: "machine-generated", 1: "human-written"}
 
-        # Step 2
-        # Ensemble of longformer and watermark models
-        longformer_response = response["longformer"]
-        watermark_response = response["watermark"]
-        finetuned_response = response["finetuned"]
-        # Extract values from responses
-        longformer_confidence = longformer_response.get("confidence", 0.0)
-        finetuned_confidence = finetuned_response.get("confidence", 0.0)
-        watermark_confidence = watermark_response.get("confidence", 0.0)
-        watermark_p_value = watermark_response.get("p_value", 1.0)
-        watermark_z_score = watermark_response.get("z_score", 0.0)
+        # Initialize combined distribution
+        fused_scores = [0.0, 0.0]  # [machine, human]
 
-        # Statistical significance based on multiple factors
-        green_fraction_significance = watermark_response.get("green_fraction", 0) > 1.1 * 0.25  # Adjust based on γ
-        is_watermark_significant = (watermark_p_value < 0.5) or (watermark_z_score > 1.5 and green_fraction_significance)
+        # A helper to ensure numeric stability in case we need to softmax
+        # (Optional if your logprobs already sum to 1.0, but included for safety.)
+        def _safe_normalize(prob_list):
+            total = sum(prob_list)
+            return [p / total for p in prob_list] if total > 0 else prob_list
 
-        # Dynamic weighting
-        longformer_weight = longformer_confidence
-        watermark_weight = (
-            watermark_confidence * 1.5 if is_watermark_significant else watermark_confidence * 0.7
-        )
-        finetuned_weight = finetuned_confidence * 1.5 if language != "en" else finetuned_confidence * 0.4
+        # A helper to extract [p_machine, p_human] from each model response
+        def get_distribution(model_name: str, data: dict) -> list[float]:
+            # If the model provides logprobs, we assume they're [p_machine, p_human]
+            # or near-probabilities that just need normalization.
+            if "logprobs" in data and isinstance(data["logprobs"], list):
+                probs = _safe_normalize(data["logprobs"])
+                return probs
+            
+            # Otherwise, fall back to label+confidence
+            # We'll interpret "confidence" as belonging to the reported label.
+            # For example, if label="machine-generated" and confidence=0.9,
+            # then p_machine=0.9, p_human=0.1.
+            if "label" in data and "confidence" in data:
+                label = data["label"]
+                conf = data["confidence"]
+                if label == "machine-generated":
+                    return [conf, 1 - conf]  # [p_machine, p_human]
+                else:
+                    return [1 - conf, conf]  # [p_machine, p_human]
 
-        # Normalize weights
-        total_weight = longformer_weight + watermark_weight + finetuned_weight
-        if total_weight > 0:
-            longformer_weight /= total_weight
-            watermark_weight /= total_weight
-            finetuned_weight /= total_weight
-        else:
-            longformer_weight = watermark_weight = finetuned_weight = 1.0 / 3.0
+            # If nothing is valid, return a uniform guess
+            return [0.5, 0.5]
 
-        # Combined confidence
-        combined_confidence = (
-            longformer_weight * longformer_confidence +
-            watermark_weight * watermark_confidence +
-            finetuned_weight * finetuned_confidence
-        )
+        # For each model, pull out a probability distribution and multiply by its weight
+        for model_name in ["longformer", "finetuned", "watermark"]:
+            model_data = response.get(model_name, {})
+            w = base_weights.get(model_name, 1.0)
+            dist = get_distribution(model_name, model_data)
+            # Scale by the model's weight, then add to fused_scores
+            fused_scores[0] += dist[0] * w
+            fused_scores[1] += dist[1] * w
 
-        # Decision logic
-        if longformer_confidence > 0.996:
-            final_prediction = longformer_response["label"]
-        elif longformer_response["label"] == "machine-generated" and watermark_response["label"] == "machine-generated":
-            final_prediction = "machine-generated"
-        elif longformer_response["label"] == "machine-generated" or watermark_response["label"] == "machine-generated":
-            if is_watermark_significant:
-                final_prediction = watermark_response["label"]
-            else:
-                # Default to the model with higher confidence
-                final_prediction = "machine-generated" if longformer_confidence > watermark_confidence else "human-written"
-        else:
-            final_prediction = "human-written"
+        # Normalize the fused distribution
+        fused_scores = _safe_normalize(fused_scores)
 
-        # Update response
-        response["macdet"]["label"] = final_prediction
-        response["macdet"]["confidence"] = combined_confidence
-                
-        print(json.dumps(response, indent=4))
+        # Pick the final label and confidence
+        final_index = 0 if fused_scores[0] > fused_scores[1] else 1
+        final_label = index_to_label[final_index]
+        final_confidence = fused_scores[final_index]
+
+        response["macdet"] = {
+            "label": final_label,
+            "confidence": final_confidence,
+            "logprobs": fused_scores
+        }
         return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")

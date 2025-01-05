@@ -47,8 +47,9 @@ def detect(input_text, tokenizer, model, device="cpu", th=-3.08583984375):
         # Map the predicted class to the label
         label_map = {1: "machine-generated", 0: "human-written"}
         label = label_map.get(predicted_class, "unknown")
-
-        return {"label": label, "confidence": confidence}
+        logprobs = probabilities.tolist()
+        logprobs.reverse()
+        return {"label": label, "confidence": confidence, "logprobs": logprobs}
 
     except Exception as e:
         return {"error": f"An error occurred during detection: {str(e)}"}

@@ -72,7 +72,5 @@ class InferenceEngine:
         # Perform inference
         outputs = detect(inputs, tokenizer, model, self.device)
         return DetectionResponse(
-            text=detection_request.text,
-            label=outputs["label"],
-            confidence=outputs["confidence"],
+            **outputs
         )

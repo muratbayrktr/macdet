@@ -65,7 +65,7 @@ class InferenceEngine:
             raise ImportError("torch is not available in the environment.")
         inputs = preprocess(detection_request.text)
         outputs = detect(inputs, self.watermark_detector, self.device)
-        watermarked_output = watermarkedtext(inputs, self.tokenizer, self.model, self.device)
+        watermarked_output = '' #watermarkedtext(inputs, self.tokenizer, self.model, self.device)
         return WatermarkDetectionResponse(
             text=watermarked_output,
             **outputs

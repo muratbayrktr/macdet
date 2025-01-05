@@ -297,4 +297,5 @@ def detect(input_text,tokenizer,model,device='cuda:0',th=-3.08583984375):
     return {
         "label": label2decisions[decision],
         "confidence": confidence,
+        "logprobs": torch.softmax(outputs.logits, dim=1).squeeze().tolist()
     }

@@ -7,11 +7,14 @@ document.addEventListener("DOMContentLoaded", () => {
         const inputMode = document.getElementById("input-mode").value;
         const samplingOptions = document.getElementById("sampling-options");
         const manualInput = document.getElementById("manual-input");
+        const manualText = document.getElementById("manual-text");
         const sampledDataOutput = document.getElementById("sampled-data-output");
 
         if (inputMode === "manual") {
             samplingOptions.style.display = "none";
             manualInput.style.display = "block";
+            manualText.style.height = "auto";
+            manualText.style.width = "90%";
             sampledDataOutput.style.display = "none";
         } else {
             samplingOptions.style.display = "block";

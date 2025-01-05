@@ -24,7 +24,5 @@ class InferenceEngine:
         inputs = preprocess(detection_request.text)
         outputs = detect(inputs, self.tokenizer, self.model, self.device)
         return DetectionResponse(
-            text=detection_request.text,
-            label=outputs["label"],
-            confidence=outputs["confidence"],
+            **outputs
         )
